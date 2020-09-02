@@ -1,17 +1,14 @@
 const core = require("@actions/core");
-const github = require("@actions/github");
 const glob = require("@actions/glob");
 const parser = require("xml2js");
 const fs = require("fs");
 const path = require("path");
+const cmd = require("@actions/core/lib/command");
 
 (async () => {
   try {
     const inputPath = core.getInput("path");
-    const includeSummary = core.getInput("includeSummary");
     const numFailures = core.getInput("numFailures");
-    const accessToken = core.getInput("access-token");
-    const name = core.getInput("name");
     const globber = await glob.create(inputPath, {
       followSymbolicLinks: false,
     });
@@ -26,9 +23,9 @@ const path = require("path");
       }
     }
 
-    const annotation_level = testSummary.isFailedOrErrored() ? "failure" : "notice";
+    const annotation_level = testSummary.isFailedOrErrored() ? "error" : "warning";
     const annotation = {
-      path: "test",
+      path: "TestResults",
       start_line: 0,
       end_line: 0,
       start_column: 0,
@@ -36,32 +33,22 @@ const path = require("path");
       annotation_level,
       message: testSummary.toFormattedMessage(),
     };
-
-    const conclusion = testSummary.annotations.length === 0 ? "success" : "failure";
     testSummary.annotations = [annotation, ...testSummary.annotations];
-
-    const pullRequest = github.context.payload.pull_request;
-    const link = (pullRequest && pullRequest.html_url) || github.context.ref;
-    const status = "completed";
-    const head_sha =
-      (pullRequest && pullRequest.head.sha) || github.context.sha;
     const annotations = testSummary.annotations;
 
-    const createCheckRequest = {
-      ...github.context.repo,
-      name,
-      head_sha,
-      status,
-      conclusion,
-      output: {
-        title: name,
-        summary: testSummary.toFormattedMessage(),
-        annotations,
-      },
-    };
+    for (let annotation of annotations) {
+      cmd.issueCommand(
+        annotation.annotation_level,
+        {
+          file: annotation.path,
+          line: annotation.start_line,
+          col: annotation.start_column,
+          title: annotation.title || "Summary"
+        },
+        annotation.message,
+      )
+    }
 
-    const octokit = new github.GitHub(accessToken);
-    await octokit.checks.create(createCheckRequest);
   } catch (error) {
     core.setFailed(error.message);
   }
@@ -80,16 +67,16 @@ class TestSummary {
 
   async handleTestSuite(testsuite, file) {
     if (testsuite.$) {
-      this.testDuration += Number(testsuite.$.time) || 0;
       this.numTests += Number(testsuite.$.tests) || 0;
       this.numErrored += Number(testsuite.$.errors) || 0;
       this.numFailed += Number(testsuite.$.failures) || 0;
-      this.numSkipped += Number(testsuite.$.skipped) || 0;
+      this.numSkipped += Number(testsuite.$.skip) || 0;
     }
 
     if (testsuite.testcase) {
       for await (const testcase of testsuite.testcase) {
         await this.handleTestCase(testcase, file);
+        this.testDuration += Number(testcase.$.time) || 0;
       }
     }
   }
@@ -111,7 +98,7 @@ class TestSummary {
       end_line: line,
       start_column: 0,
       end_column: 0,
-      annotation_level: "failure",
+      annotation_level: "error",
       title: testcase.$.name,
       message: TestSummary.formatFailureMessage(testcase),
       raw_details: testcase.failure[0]._ || 'No details'
@@ -121,9 +108,9 @@ class TestSummary {
   static formatFailureMessage(testcase) {
     const failure = testcase.failure[0];
     if (failure.$ && failure.$.message) {
-      return `Junit test ${testcase.$.name} failed ${failure.$.message}`;
+      return `${testcase.$.name} failed ${failure.$.message}`;
     } else {
-      return `Junit test ${testcase.$.name} failed`;
+      return `${testcase.$.name} failed`;
     }
   }
 
@@ -132,7 +119,7 @@ class TestSummary {
   }
 
   toFormattedMessage() {
-    return `Junit Results ran ${this.numTests} in ${this.testDuration} seconds ${this.numErrored} Errored, ${this.numFailed} Failed, ${this.numSkipped} Skipped`;
+    return `Ran ${this.numTests} test(s) in ${this.testDuration} seconds ${this.numErrored} Errored, ${this.numFailed} Failed, ${this.numSkipped} Skipped`;
   }
 
 }

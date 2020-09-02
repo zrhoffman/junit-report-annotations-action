@@ -91,11 +91,10 @@ describe('readTestSuites', () => {
       const filePath = 'TEST-report.xml';
 
       await addFile(filePath, '<?xml version="1.0" encoding="UTF-8"?>\n' +
-          '<testsuite name="org.dummy.DummyTest" tests="4" skipped="1" failures="1" errors="1"' +
-          ' timestamp="2020-07-21T19:20:12" hostname="dummy" time="0.132">\n' +
-          '  <testcase name="test1" classname="org.dummy.DummyTest" time="0.028"/>\n' +
-          '  <testcase name="test2" classname="org.dummy.DummyTest" time="0.054">\n' +
-          '    <failure message="failure_message" type="failure_type">failure_text</failure>\n' +
+          '<testsuite name="API DB" tests="2" errors="0" failures="1" skip="0">\n' +
+          '  <testcase classname="API DB" name="Test Case - Garbage Collection" time="78"/>\n' +
+          '  <testcase classname="API DB" name="Test Case - Push Cnab Bundle" time="30">\n' +
+          '    <failure message="1 != 0" type="AssertionError"></failure>\n' +
           '  </testcase>\n' +
           '</testsuite>');
 
@@ -103,35 +102,31 @@ describe('readTestSuites', () => {
 
       expect(testSuites).toStrictEqual([{
         $: {
-          name: 'org.dummy.DummyTest',
-          tests: '4',
-          skipped: '1',
+          name: 'API DB',
+          tests: '2',
+          skip: '0',
           failures: '1',
-          errors: '1',
-          timestamp: '2020-07-21T19:20:12',
-          hostname: 'dummy',
-          time: '0.132'
+          errors: '0'
         },
         testcase: [
           {
             $: {
-              name: 'test1',
-              classname: 'org.dummy.DummyTest',
-              time: '0.028'
+              name: 'Test Case - Garbage Collection',
+              classname: 'API DB',
+              time: '78'
             }
           },
           {
             $: {
-              name: 'test2',
-              classname: 'org.dummy.DummyTest',
-              time: '0.054'
+              name: 'Test Case - Push Cnab Bundle',
+              classname: 'API DB',
+              time: '30'
             },
             failure: [{
               $: {
-                message: 'failure_message',
-                type: 'failure_type'
+                message: '1 != 0',
+                type: 'AssertionError'
               },
-              _: 'failure_text'
             }]
           }
         ]
@@ -231,7 +226,7 @@ describe('TestSummary', () => {
           tests: "2",
           errors: "3",
           failures: "4",
-          skipped: "5"
+          skip: "5"
         }
       }, 'file');
 
@@ -295,7 +290,7 @@ describe('TestSummary', () => {
         end_column: 0,
         annotation_level: 'failure',
         title: 'dummyTest',
-        message: 'Junit test dummyTest failed dummyMessage',
+        message: 'Test dummyTest failed dummyMessage',
         raw_details: 'detailed description of failure'
       }]);
     });
@@ -323,7 +318,7 @@ describe('TestSummary', () => {
         end_column: 0,
         annotation_level: 'failure',
         title: 'dummyTest',
-        message: 'Junit test dummyTest failed',
+        message: 'Test dummyTest failed',
         raw_details: 'No details'
       }]);
     });
