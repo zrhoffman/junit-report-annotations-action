@@ -9,6 +9,8 @@ const cmd = require("@actions/core/lib/command");
   try {
     const inputPath = core.getInput("path");
     const numFailures = core.getInput("numFailures");
+    const cwd = core.getInput("cwd");
+    process.chdir(cwd);
     const globber = await glob.create(inputPath, {
       followSymbolicLinks: false,
     });

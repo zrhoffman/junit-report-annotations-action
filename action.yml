@@ -12,6 +12,10 @@ inputs:
     description: "max number of failed tests to include"
     require: true
     default: 10
+  cwd:
+    description: "The directory to change to before running the action"
+    require: true
+    default: "."
 runs:
   using: "node12"
   main: "index.js"
