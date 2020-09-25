@@ -38,16 +38,17 @@ const cmd = require("@actions/core/lib/command");
     testSummary.annotations = [annotation, ...testSummary.annotations];
     const annotations = testSummary.annotations;
 
+    console.log("About to do the annotation");
     for (let annotation of annotations) {
       cmd.issueCommand(
-        annotation.annotation_level,
+        annotation.annotation_level.toString(),
         {
-          file: annotation.path,
-          line: annotation.start_line,
-          col: annotation.start_column,
-          title: annotation.title || "Summary"
+          file: annotation.path.toString(),
+          line: annotation.start_line.toString(),
+          col: annotation.start_column.toString(),
+          title: (annotation.title || "Summary").toString()
         },
-        annotation.message,
+        annotation.message.toString(),
       )
     }
 
